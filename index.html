@@ -474,6 +474,7 @@
 <div id="round-result"></div>
 <button id="music-btn" title="Música">🔇</button>
 <div id="yt-player"></div>
+<audio id="kiai-audio" src="./resources/audio/kiai.m4a" preload="auto"></audio>
 
 <!-- ══════════ INTRO ══════════ -->
 <div id="intro-screen">
@@ -837,8 +838,13 @@ function sfxHit() {
   osc.start(now); osc.stop(now + 0.35);
 }
 
-function sfxPlayerHit() {
-  const ctx  = getAudioCtx();
+function playKiai() {
+  const audio = document.getElementById('kiai-audio');
+  audio.currentTime = 0;
+  audio.play().catch(() => {});
+}
+
+function sfxPlayerHit() {  const ctx  = getAudioCtx();
   const buf  = ctx.createBuffer(1, ctx.sampleRate * 0.18, ctx.sampleRate);
   const data = buf.getChannelData(0);
   for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
@@ -980,6 +986,7 @@ function applyResult(result, pChoice, cChoice) {
     cpu.classList.add('cpu-hit-anim');
     setTimeout(() => { cpu.classList.remove('cpu-hit-anim'); cpu.classList.add('cpu-idle'); }, 700);
     sfxHit();
+    playKiai();
     showResult('¡IMPACTO!', 'result-win');
 
   } else if (result === 'lose') {
