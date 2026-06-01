@@ -128,6 +128,7 @@ function confirmChar() {
 // GAME INIT
 function initGame() {
   playerScore = 0; cpuScore = 0; busy = false;
+  audioUnlocked = false;
   buildPips('player-pips', MAX_SCORE, false);
   buildPips('cpu-pips',    MAX_SCORE, true);
   updateScoreNums();
