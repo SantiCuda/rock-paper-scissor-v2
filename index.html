@@ -474,7 +474,9 @@
 <div id="round-result"></div>
 <button id="music-btn" title="Música">🔇</button>
 <div id="yt-player"></div>
-<audio id="kiai-audio" src="./resources/audio/kiai.mp3" preload="auto"></audio>
+<audio id="kiai-audio"      src="./resources/audio/kiai.mp3"      preload="auto"></audio>
+<audio id="damage-audio"    src="./resources/audio/damage.mp3"    preload="auto"></audio>
+<audio id="explosion-audio" src="./resources/audio/explosion.mp3" preload="auto"></audio>
 
 <!-- ══════════ INTRO ══════════ -->
 <div id="intro-screen">
@@ -842,14 +844,21 @@ function playKiai() {
   const audio = document.getElementById('kiai-audio');
   audio.currentTime = 0;
   const p = audio.play();
-  if (p !== undefined) {
-    p.catch(err => {
-      document.addEventListener('click', () => {
-        audio.currentTime = 0;
-        audio.play().catch(() => {});
-      }, { once: true });
-    });
-  }
+  if (p !== undefined) p.catch(() => {});
+}
+
+function playDamage() {
+  const audio = document.getElementById('damage-audio');
+  audio.currentTime = 0;
+  const p = audio.play();
+  if (p !== undefined) p.catch(() => {});
+}
+
+function playExplosion() {
+  const audio = document.getElementById('explosion-audio');
+  audio.currentTime = 0;
+  const p = audio.play();
+  if (p !== undefined) p.catch(() => {});
 }
 
 function sfxPlayerHit() {  const ctx  = getAudioCtx();
@@ -959,11 +968,11 @@ function getWinner(p, c) {
 function play(playerChoice) {
   if (busy) return;
   busy = true;
-  // Desbloquear audio en el primer click de arma
-  const kiai = document.getElementById('kiai-audio');
-  if (kiai.paused) {
-    kiai.play().then(() => kiai.pause()).catch(() => {});
-  }
+  // Desbloquear audios en el primer click de arma
+  ['kiai-audio','damage-audio','explosion-audio'].forEach(id => {
+    const a = document.getElementById(id);
+    if (a.paused) a.play().then(() => a.pause()).catch(() => {});
+  });
   showLaugh();
   setTimeout(() => {
     const choices = ['rock','paper','scissors'];
@@ -1012,6 +1021,7 @@ function applyResult(result, pChoice, cChoice) {
     const playerEl = document.getElementById('player-char');
     playerEl.classList.add('player-hit-anim');
     setTimeout(() => playerEl.classList.remove('player-hit-anim'), 550);
+    playDamage();
     showResult('¡FALLASTE!', 'result-lose');
 
   } else {
@@ -1062,6 +1072,7 @@ function triggerGameOver() {
     title.style.color = '#00f5ff';
     title.style.textShadow = '0 0 30px #00f5ff,0 0 60px #00f5ff';
     sub.textContent = 'Derrotaste al CPU. La humanidad tiene una oportunidad.';
+    playExplosion();
   } else {
     title.textContent = 'DERROTA';
     title.style.color = '#ff1a1a';
