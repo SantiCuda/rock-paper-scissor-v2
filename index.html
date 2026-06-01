@@ -665,6 +665,7 @@
 <audio id="kiai-audio"      src="./resources/audio/kiai.mp3"      preload="auto"></audio>
 <audio id="damage-audio"    src="./resources/audio/damage.mp3"    preload="auto"></audio>
 <audio id="explosion-audio" src="./resources/audio/explosion.mp3" preload="auto"></audio>
+<audio id="perdiste-audio"  src="./resources/audio/perdiste.mp3"  preload="auto"></audio>
 
 <!-- ══════════ INTRO ══════════ -->
 <div id="intro-screen">
@@ -974,9 +975,10 @@ window.onYouTubeIframeAPIReady = function () {
 
 function startMusic() {
   if (!ytReady) {
-    pendingPlay = true;   // la API todavía no cargó, se reproducirá cuando esté lista
+    pendingPlay = true;
     return;
   }
+  ytPlayer.seekTo(0);
   ytPlayer.playVideo();
   musicOn = true;
   syncMusicBtn();
@@ -1050,6 +1052,14 @@ function playDamage() {
 
 function playExplosion() {
   const audio = document.getElementById('explosion-audio');
+  audio.volume = 1.0;
+  audio.currentTime = 0;
+  const p = audio.play();
+  if (p !== undefined) p.catch(() => {});
+}
+
+function playPerdiste() {
+  const audio = document.getElementById('perdiste-audio');
   audio.volume = 1.0;
   audio.currentTime = 0;
   const p = audio.play();
@@ -1164,7 +1174,7 @@ function play(playerChoice) {
   if (busy) return;
   busy = true;
   // Desbloquear audios en el primer click de arma
-  ['kiai-audio','damage-audio','explosion-audio'].forEach(id => {
+  ['kiai-audio','damage-audio','explosion-audio','perdiste-audio'].forEach(id => {
     const a = document.getElementById(id);
     if (a.paused) a.play().then(() => a.pause()).catch(() => {});
   });
@@ -1284,6 +1294,12 @@ function triggerVictory() {
 }
 
 function triggerDefeat() {
+  // Corta la música de batalla
+  if (ytReady) ytPlayer.pauseVideo();
+  musicOn = false; syncMusicBtn();
+
+  playPerdiste();
+
   const overlay = document.getElementById('game-over-overlay');
   const title   = document.getElementById('game-over-title');
   const sub     = document.getElementById('game-over-sub');
