@@ -841,7 +841,15 @@ function sfxHit() {
 function playKiai() {
   const audio = document.getElementById('kiai-audio');
   audio.currentTime = 0;
-  audio.play().catch(() => {});
+  const p = audio.play();
+  if (p !== undefined) {
+    p.catch(err => {
+      document.addEventListener('click', () => {
+        audio.currentTime = 0;
+        audio.play().catch(() => {});
+      }, { once: true });
+    });
+  }
 }
 
 function sfxPlayerHit() {  const ctx  = getAudioCtx();
@@ -951,6 +959,11 @@ function getWinner(p, c) {
 function play(playerChoice) {
   if (busy) return;
   busy = true;
+  // Desbloquear audio en el primer click de arma
+  const kiai = document.getElementById('kiai-audio');
+  if (kiai.paused) {
+    kiai.play().then(() => kiai.pause()).catch(() => {});
+  }
   showLaugh();
   setTimeout(() => {
     const choices = ['rock','paper','scissors'];
