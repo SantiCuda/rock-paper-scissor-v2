@@ -161,11 +161,11 @@
 
   /* card base — NO class names on cards themselves */
   #card-0, #card-1, #card-2 {
-    width:clamp(120px,20vw,160px);
+    width:clamp(160px,22vw,220px);
     border:2px solid #1a1a1a; border-radius:14px;
     background:#060606;
     display:flex; flex-direction:column; align-items:center;
-    padding:1rem .8rem; gap:.6rem;
+    padding:1.2rem 1rem; gap:.8rem;
     position:relative; transition:all .22s; overflow:hidden;
   }
 
@@ -189,25 +189,23 @@
   #card-1, #card-2 { opacity:.28; cursor:not-allowed; }
 
   .char-photo {
-    width:80px; height:100px;
+    width:120px; height:150px;
     object-fit:cover; object-position:center top;
     border-radius:8px;
     transition:filter .22s;
   }
   .char-photo-placeholder {
-    width:80px; height:100px; border-radius:8px;
+    width:120px; height:150px; border-radius:8px;
     background:#0a0a0a; display:flex;
     align-items:center; justify-content:center;
-    font-size:2rem; color:#1a1a1a;
+    font-size:2.5rem; color:#1a1a1a;
   }
   .char-name {
-    font-family:'Orbitron',sans-serif; font-size:.6rem;
+    font-family:'Orbitron',sans-serif; font-size:.65rem;
     font-weight:700; letter-spacing:.15em;
     text-align:center; color:#2a2a2a;
   }
   #card-0 .char-name { color:var(--cyan); }
-  .char-role { font-size:.52rem; color:#252525; letter-spacing:.1em; text-align:center; }
-  #card-0 .char-role { color:#3a5a66; }
   .lock-badge {
     position:absolute; inset:0; display:flex;
     align-items:center; justify-content:center;
@@ -494,7 +492,6 @@
 <!-- ══════════ CHARACTER SELECT ══════════ -->
 <div id="char-screen">
   <div id="char-title">SELECCIONÁ TU LUCHADOR</div>
-  <div id="char-subtitle">— ELIGE A TU REPRESENTANTE —</div>
 
   <div id="char-grid">
 
@@ -503,7 +500,6 @@
       <img class="char-photo" src="./resources/images/player.png" alt="El Renegado"
            onerror="this.outerHTML='<div class=\'char-photo-placeholder\'>🥊</div>'">
       <div class="char-name">EL RENEGADO</div>
-      <div class="char-role">Clase: Guerrero</div>
     </div>
 
     <!-- PERSONAJE 2 — bloqueado -->
