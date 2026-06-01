@@ -71,19 +71,38 @@ function unlockAudios() {
   audioUnlocked = true;
   ['kiai-audio', 'damage-audio', 'explosion-audio', 'perdiste-audio'].forEach(id => {
     const a = document.getElementById(id);
-    a.play().then(() => a.pause()).catch(() => {});
+    a.muted = true;
+    a.play().then(() => {
+      a.pause();
+      a.currentTime = 0;
+      a.muted = false;
+    }).catch(() => {
+      a.muted = false;
+    });
   });
   if (queenReady) {
+    ytQueen.mute();
     ytQueen.playVideo();
-    setTimeout(() => { ytQueen.pauseVideo(); }, 300);
+    setTimeout(() => { ytQueen.pauseVideo(); ytQueen.unMute(); }, 300);
   }
 }
 
 function playSfx(id) {
   const a = document.getElementById(id);
+  if (!a) return;
   a.volume = 1.0;
   a.currentTime = 0;
-  a.play().catch(() => {});
+  // En mobile puede estar suspendido — forzar resume
+  const playPromise = a.play();
+  if (playPromise !== undefined) {
+    playPromise.catch(() => {
+      // Segundo intento tras tiny delay
+      setTimeout(() => {
+        a.currentTime = 0;
+        a.play().catch(() => {});
+      }, 100);
+    });
+  }
 }
 
 /* ══════════════════════════════
@@ -281,19 +300,23 @@ function triggerGameOver() {
 }
 
 function triggerVictory() {
-  if (ytReady)    ytPlayer.pauseVideo();
-  if (queenReady) ytQueen.playVideo();
-  musicOn = false; syncMusicBtn();
   playSfx('explosion-audio');
+  setTimeout(() => {
+    if (ytReady)    ytPlayer.pauseVideo();
+    if (queenReady) ytQueen.playVideo();
+    musicOn = false; syncMusicBtn();
+  }, 100);
   document.getElementById('victory-score').innerHTML =
     `<span style="color:var(--cyan)">${playerScore}</span> <span style="color:#222">—</span> <span style="color:var(--red)">${cpuScore}</span>`;
   document.getElementById('victory-screen').style.display = 'flex';
 }
 
 function triggerDefeat() {
-  if (ytReady) ytPlayer.pauseVideo();
-  musicOn = false; syncMusicBtn();
   playSfx('perdiste-audio');
+  setTimeout(() => {
+    if (ytReady) ytPlayer.pauseVideo();
+    musicOn = false; syncMusicBtn();
+  }, 100);
   document.getElementById('game-over-title').textContent = 'DERROTA';
   document.getElementById('game-over-title').style.color = '#ff1a1a';
   document.getElementById('game-over-title').style.textShadow = '0 0 30px #f00,0 0 60px #f00';

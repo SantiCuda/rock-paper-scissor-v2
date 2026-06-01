@@ -518,8 +518,8 @@ body {
     100%{transform:translateY(0) rotate(0)}
   }
 
-  #victory-screen { gap:.8rem; padding:1.2rem 1rem; }
-  #victory-img { max-width:90vw; max-height:32vh; }
+  #victory-screen { gap:.8rem; padding:1.2rem 1rem; justify-content:center; }
+  #victory-img { max-width:92vw; max-height:40vh; width:auto; height:auto; display:block; }
   #victory-title { font-size:2.2rem; }
   #game-over-title { font-size:2.2rem; }
   #game-over-sub   { font-size:.6rem; }
