@@ -1,646 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Rock Paper Scissors — Last Hope</title>
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
-<style>
-  :root {
-    --red: #ff1a1a;
-    --red-glow: rgba(255,26,26,0.4);
-    --cyan: #00f5ff;
-    --cyan-glow: rgba(0,245,255,0.35);
-    --dark: #050505;
-    --text: #e0e0e0;
-  }
-
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-
-  body {
-    background: var(--dark);
-    color: var(--text);
-    font-family: 'Share Tech Mono', monospace;
-    overflow: hidden;
-    height: 100vh;
-    height: 100dvh;
-    width: 100vw;
-  }
-
-  /* ── SCANLINES ── */
-  .scanlines {
-    position: fixed; inset: 0;
-    background: repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.055) 2px,rgba(0,0,0,0.055) 4px);
-    pointer-events: none; z-index: 999;
-  }
-
-  /* ── HIT FLASH ── */
-  #hit-flash { position: fixed; inset: 0; pointer-events: none; z-index: 200; }
-  @keyframes redFlash { 0%{background:rgba(255,0,0,.55)} 100%{background:rgba(255,0,0,0)} }
-  .flash-active { animation: redFlash .55s ease-out forwards !important; }
-
-  /* ── ROUND RESULT ── */
-  #round-result {
-    position: fixed; top:50%; left:50%;
-    transform: translate(-50%,-50%) scale(0);
-    font-family: 'Orbitron', sans-serif;
-    font-size: clamp(2rem,6vw,4rem); font-weight:900;
-    letter-spacing:.1em; text-align:center;
-    z-index:150; pointer-events:none; opacity:0;
-  }
-  @keyframes resultPop {
-    0%  {transform:translate(-50%,-50%) scale(0);opacity:0}
-    40% {transform:translate(-50%,-50%) scale(1.3);opacity:1}
-    80% {transform:translate(-50%,-50%) scale(1);opacity:1}
-    100%{transform:translate(-50%,-50%) scale(1);opacity:0}
-  }
-  .result-show { animation: resultPop .9s ease-out forwards; }
-  .result-win  { color:var(--cyan); text-shadow:0 0 30px var(--cyan),0 0 60px var(--cyan); }
-  .result-lose { color:var(--red);  text-shadow:0 0 30px var(--red),0 0 60px var(--red); }
-  .result-tie  { color:#777;        text-shadow:0 0 20px #777; }
-
-  /* ── MUSIC BUTTON ── */
-  #music-btn {
-    position: fixed; bottom:1rem; right:1rem; z-index:500;
-    background: transparent;
-    border: 1px solid #222;
-    border-radius: 50%;
-    width: 38px; height: 38px;
-    cursor: pointer;
-    font-size: 1rem;
-    display: flex; align-items:center; justify-content:center;
-    transition: all .2s;
-    color: #444;
-  }
-  #music-btn:hover { border-color:#555; color:#888; }
-  #music-btn.on { border-color:var(--cyan); color:var(--cyan); box-shadow:0 0 10px var(--cyan-glow); }
-
-  /* YouTube player hidden */
-  #yt-player, #yt-queen {
-    position: fixed;
-    bottom: -9999px; left: -9999px;
-    width: 1px; height: 1px;
-    pointer-events: none;
-  }
-
-  /* ══════════════════════════════
-     INTRO
-  ══════════════════════════════ */
-  #intro-screen {
-    position:fixed; inset:0; background:#000;
-    display:flex; flex-direction:column;
-    align-items:center; justify-content:center;
-    z-index:100; cursor:pointer;
-  }
-  #intro-light {
-    position:absolute; top:50%; left:50%;
-    transform:translate(-50%,-50%);
-    width:2px; height:2px; border-radius:50%; background:#fff;
-    animation: lightAppear 2s ease-out .8s forwards;
-  }
-  @keyframes lightAppear {
-    0%  {box-shadow:0 0 0 0 rgba(255,255,255,0)}
-    40% {box-shadow:0 0 60px 40px rgba(255,255,200,.6)}
-    100%{box-shadow:0 0 120px 120px rgba(255,200,100,.1)}
-  }
-  #intro-text {
-    position:relative; z-index:2; text-align:center;
-    opacity:0; animation: fadeIn 1s ease-in 2.5s forwards;
-    max-width:580px; padding:2rem;
-  }
-  @keyframes fadeIn {
-    from{opacity:0;transform:translateY(10px)}
-    to  {opacity:1;transform:translateY(0)}
-  }
-  #intro-text h1 {
-    font-family:'Orbitron',sans-serif;
-    font-size:clamp(1.1rem,3vw,1.7rem); font-weight:900;
-    color:#ff4444; text-shadow:0 0 20px #f00,0 0 40px #f0005a;
-    letter-spacing:.15em; margin-bottom:1.5rem; line-height:1.4;
-  }
-  #intro-text p {
-    font-size:clamp(.75rem,1.8vw,.95rem);
-    color:#999; line-height:1.9; margin-bottom:.6rem;
-  }
-  #intro-text p span { color:#ff6666; font-weight:bold; }
-  #intro-skip {
-    margin-top:2rem; font-family:'Orbitron',sans-serif;
-    font-size:.7rem; color:#333; letter-spacing:.25em;
-    animation: blink 1.3s infinite 4s;
-  }
-  @keyframes blink { 0%,100%{opacity:.2} 50%{opacity:1} }
-
-  /* ══════════════════════════════
-     CHARACTER SELECT
-  ══════════════════════════════ */
-  #char-screen {
-    display:none; position:fixed; inset:0;
-    background:radial-gradient(ellipse at center,#080010 0%,#000 100%);
-    flex-direction:column; align-items:center; justify-content:center;
-    z-index:90; gap:1.8rem; padding:2rem;
-  }
-  #char-screen::before {
-    content:''; position:absolute; inset:0;
-    background-image:
-      linear-gradient(rgba(255,26,26,.025) 1px,transparent 1px),
-      linear-gradient(90deg,rgba(255,26,26,.025) 1px,transparent 1px);
-    background-size:40px 40px; pointer-events:none;
-  }
-  #char-title {
-    font-family:'Orbitron',sans-serif; font-weight:900;
-    font-size:clamp(1rem,3vw,1.6rem); letter-spacing:.3em;
-    color:var(--cyan); text-shadow:0 0 20px var(--cyan); text-align:center;
-  }
-  #char-subtitle {
-    font-size:.72rem; color:#3a3a3a; letter-spacing:.2em;
-    text-align:center; margin-top:-1.4rem;
-  }
-  #char-grid {
-    display:flex; gap:clamp(.8rem,2vw,1.5rem);
-    flex-wrap:wrap; justify-content:center;
-  }
-
-  /* card base — NO class names on cards themselves */
-  #card-0, #card-1, #card-2 {
-    width:clamp(160px,22vw,220px);
-    border:2px solid #1a1a1a; border-radius:14px;
-    background:#060606;
-    display:flex; flex-direction:column; align-items:center;
-    padding:1.2rem 1rem; gap:.8rem;
-    position:relative; transition:all .22s; overflow:hidden;
-  }
-
-  /* available card (card-0) */
-  #card-0 {
-    cursor:pointer; border-color:#252525;
-  }
-  #card-0:hover {
-    border-color:var(--cyan);
-    box-shadow:0 0 22px var(--cyan-glow),inset 0 0 20px rgba(0,245,255,.04);
-    transform:translateY(-5px);
-  }
-  #card-0:hover .char-photo { filter:drop-shadow(0 0 14px var(--cyan)) brightness(1.05); }
-  #card-0.selected {
-    border-color:var(--cyan);
-    box-shadow:0 0 28px var(--cyan-glow);
-  }
-  #card-0.selected .char-photo { filter:drop-shadow(0 0 14px var(--cyan)); }
-
-  /* locked cards */
-  #card-1, #card-2 { opacity:.28; cursor:not-allowed; }
-
-  .char-photo {
-    width:120px; height:150px;
-    object-fit:cover; object-position:center top;
-    border-radius:8px;
-    transition:filter .22s;
-  }
-  .char-photo-placeholder {
-    width:120px; height:150px; border-radius:8px;
-    background:#0a0a0a; display:flex;
-    align-items:center; justify-content:center;
-    font-size:2.5rem; color:#1a1a1a;
-  }
-  .char-name {
-    font-family:'Orbitron',sans-serif; font-size:.65rem;
-    font-weight:700; letter-spacing:.15em;
-    text-align:center; color:#2a2a2a;
-  }
-  #card-0 .char-name { color:var(--cyan); }
-  .lock-badge {
-    position:absolute; inset:0; display:flex;
-    align-items:center; justify-content:center;
-    font-size:1.6rem; background:rgba(0,0,0,.45); border-radius:12px;
-  }
-  .soon-tag {
-    font-size:.48rem; color:#3a1010; letter-spacing:.1em;
-    font-family:'Orbitron',sans-serif;
-  }
-
-  #char-confirm-btn {
-    padding:.75rem 2.5rem;
-    background:transparent; border:2px solid var(--cyan);
-    color:var(--cyan); font-family:'Orbitron',sans-serif;
-    font-size:.75rem; letter-spacing:.25em;
-    cursor:pointer; transition:all .2s; display:none;
-  }
-  #char-confirm-btn:hover {
-    background:var(--cyan); color:#000;
-    box-shadow:0 0 25px var(--cyan-glow);
-  }
-
-  /* ══════════════════════════════
-     GAME SCREEN
-  ══════════════════════════════ */
-  #game-screen {
-    display:none; height:100vh; height:100dvh; width:100vw;
-    background:radial-gradient(ellipse at center top,#130000 0%,#040404 65%);
-    flex-direction:column; align-items:center;
-    justify-content:space-between;
-    padding:.7rem 1rem env(safe-area-inset-bottom, 1.1rem);
-    padding-bottom: max(env(safe-area-inset-bottom), 1.1rem);
-    position:relative; overflow:hidden;
-  }
-  #game-screen::before {
-    content:''; position:absolute; inset:0;
-    background-image:
-      linear-gradient(rgba(255,26,26,.03) 1px,transparent 1px),
-      linear-gradient(90deg,rgba(255,26,26,.03) 1px,transparent 1px);
-    background-size:40px 40px; pointer-events:none;
-  }
-
-  /* ── SCOREBOARD ── */
-  #scoreboard-bar {
-    width:100%; display:flex; align-items:center;
-    justify-content:space-between; z-index:10; gap:.5rem;
-  }
-  .fighter-info {
-    display:flex; flex-direction:column;
-    align-items:center; gap:.35rem; flex:1;
-  }
-  .fighter-name {
-    font-family:'Orbitron',sans-serif;
-    font-size:clamp(.52rem,1.1vw,.68rem);
-    font-weight:700; letter-spacing:.15em;
-  }
-  #player-fighter-name { color:var(--cyan); text-shadow:0 0 10px var(--cyan); }
-  #cpu-fighter-name    { color:var(--red);  text-shadow:0 0 10px var(--red); }
-
-  .pip-row { display:flex; gap:4px; justify-content:center; }
-  .pip {
-    width:clamp(13px,2.8vw,18px); height:clamp(13px,2.8vw,18px);
-    border-radius:50%; border:1.5px solid #222; background:transparent;
-    transition:all .3s;
-  }
-  .pip.player-filled { background:var(--cyan); border-color:var(--cyan); box-shadow:0 0 8px var(--cyan); }
-  .pip.cpu-filled    { background:var(--red);  border-color:var(--red);  box-shadow:0 0 8px var(--red); }
-  @keyframes pipPop { 0%{transform:scale(.2)} 60%{transform:scale(1.3)} 100%{transform:scale(1)} }
-  .pip-new { animation:pipPop .35s ease-out forwards; }
-
-  .score-center {
-    display:flex; flex-direction:column; align-items:center;
-    gap:.15rem; flex:0 0 auto; padding:0 .5rem;
-  }
-  #score-nums {
-    font-family:'Orbitron',sans-serif;
-    font-size:clamp(1.2rem,3.5vw,1.8rem);
-    font-weight:900; letter-spacing:.1em; line-height:1;
-    display:flex; align-items:center; gap:.4rem;
-  }
-  #score-player-num { color:var(--cyan); text-shadow:0 0 12px var(--cyan); }
-  #score-sep        { color:#1e1e1e; font-size:.8em; }
-  #score-cpu-num    { color:var(--red);  text-shadow:0 0 12px var(--red); }
-  #score-label      { font-size:.5rem; color:#2a2a2a; letter-spacing:.25em; }
-  @keyframes numPop { 0%{transform:scale(1)} 50%{transform:scale(1.5)} 100%{transform:scale(1)} }
-  .num-pop { animation:numPop .3s ease-out; }
-
-  /* ── BATTLE AREA ── */
-  #battle-area {
-    flex:1; display:flex; align-items:center; justify-content:center;
-    width:100%; position:relative; z-index:5;
-    gap:clamp(.5rem,2vw,2rem);
-    overflow:hidden;
-  }
-  .fighter-side {
-    display:flex; flex-direction:column; align-items:center;
-    gap:.4rem; flex:1; max-width:220px;
-    overflow:hidden;
-  }
-  .fighter-label {
-    font-family:'Orbitron',sans-serif; font-size:.48rem;
-    letter-spacing:.3em; color:#2a2a2a;
-  }
-
-  /* PLAYER image */
-  #player-char {
-    position:relative;
-    width:clamp(80px,16vw,170px);
-    filter:drop-shadow(0 0 16px rgba(0,245,255,.35));
-    transition:filter .3s;
-  }
-  #player-char img {
-    width:100%; height:auto;
-    object-fit:cover; object-position:top center;
-    border-radius:8px;
-    mask-image:linear-gradient(to bottom,black 60%,transparent 100%);
-    -webkit-mask-image:linear-gradient(to bottom,black 60%,transparent 100%);
-  }
-  .player-hit-anim { animation:playerHit .45s ease-out forwards; }
-  @keyframes playerHit {
-    0%  {transform:translateX(0) rotate(0)}
-    25% {transform:translateX(-8px) rotate(-3deg)}
-    60% {transform:translateX(4px) rotate(1deg)}
-    100%{transform:translateX(0) rotate(0)}
-  }
-
-  /* CPU enemy */
-  #cpu-enemy {
-    position:relative;
-    width:clamp(90px,18vw,185px);
-    filter:drop-shadow(0 0 18px rgba(255,26,26,.55));
-  }
-  #laugh-bubble {
-    position:absolute; top:-8px; right:-14px;
-    background:var(--red); color:#fff;
-    font-size:.5rem; font-family:'Orbitron',sans-serif;
-    padding:.22rem .5rem; border-radius:20px;
-    white-space:nowrap; opacity:0; transform:scale(0);
-    z-index:20; letter-spacing:.05em; pointer-events:none;
-  }
-  .laugh-show { animation:laughPop .3s ease-out forwards; }
-  @keyframes laughPop {
-    0%  {opacity:0;transform:scale(0)}
-    60% {opacity:1;transform:scale(1.15)}
-    100%{opacity:1;transform:scale(1)}
-  }
-
-  /* CPU animations */
-  #cpu-enemy.cpu-idle .arm-l { animation:flexL 2.6s ease-in-out infinite; transform-box:fill-box; transform-origin:right center; }
-  #cpu-enemy.cpu-idle .arm-r { animation:flexR 2.6s ease-in-out infinite; transform-box:fill-box; transform-origin:left center; }
-  #cpu-enemy.cpu-idle .head-g { animation:headBob 2.6s ease-in-out infinite; transform-box:fill-box; transform-origin:center bottom; }
-  @keyframes flexL   {0%,100%{transform:rotate(0)} 50%{transform:rotate(-20deg)}}
-  @keyframes flexR   {0%,100%{transform:rotate(0)} 50%{transform:rotate(20deg)}}
-  @keyframes headBob {0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)}}
-  .cpu-hit-anim { animation:cpuHit .55s ease-out forwards; }
-  @keyframes cpuHit {
-    0%  {transform:translateX(0) rotate(0)}
-    20% {transform:translateX(8px) rotate(4deg)}
-    50% {transform:translateX(-5px) rotate(-2deg)}
-    75% {transform:translateX(3px) rotate(1deg)}
-    100%{transform:translateX(0) rotate(0)}
-  }
-
-  /* CENTER */
-  .battle-center {
-    display:flex; flex-direction:column;
-    align-items:center; gap:.6rem; flex:0 0 auto;
-  }
-  #vs-badge {
-    font-family:'Orbitron',sans-serif;
-    font-size:clamp(.9rem,2.5vw,1.5rem);
-    font-weight:900; color:#151515; letter-spacing:.1em;
-  }
-  #choices-display {
-    display:flex; gap:.8rem; align-items:center;
-    font-family:'Orbitron',sans-serif;
-    font-size:clamp(.48rem,1vw,.62rem);
-  }
-  .choice-box {
-    text-align:center; opacity:0;
-    transform:scale(.4);
-    transition:all .3s cubic-bezier(.34,1.56,.64,1);
-  }
-  .choice-box.visible { opacity:1; transform:scale(1); }
-  .choice-emoji { font-size:clamp(1.5rem,4vw,2rem); display:block; }
-  .player-choice { color:var(--cyan); }
-  .cpu-choice    { color:var(--red);  }
-
-  #status-msg {
-    font-family:'Orbitron',sans-serif;
-    font-size:clamp(.52rem,1.2vw,.72rem); letter-spacing:.1em;
-    text-align:center; min-height:1.4em; transition:color .3s;
-    text-shadow:0 0 12px currentColor; padding:0 .5rem;
-    max-width:320px;
-  }
-
-  /* ── WEAPON BUTTONS ── */
-  #weapon-area {
-    width:100%; display:flex; flex-direction:column;
-    align-items:center; gap:.55rem; z-index:10;
-  }
-  #choose-label {
-    font-family:'Orbitron',sans-serif;
-    font-size:clamp(.5rem,1vw,.62rem); letter-spacing:.3em; color:#282828;
-  }
-  #buttons-row { display:flex; gap:clamp(.4rem,1.2vw,1rem); }
-
-  .weapon-btn {
-    display:flex; flex-direction:column; align-items:center;
-    gap:.3rem; background:transparent;
-    border:1px solid #181818; border-radius:10px;
-    padding:clamp(.45rem,1vw,.8rem) clamp(.6rem,1.5vw,1.2rem);
-    cursor:pointer; transition:all .18s;
-    font-family:'Orbitron',sans-serif;
-    font-size:clamp(.45rem,.9vw,.58rem); letter-spacing:.15em;
-    color:#383838; position:relative; overflow:hidden;
-  }
-  .weapon-btn::before {
-    content:''; position:absolute; inset:0;
-    background:var(--red); opacity:0; transition:opacity .18s;
-  }
-  .weapon-btn:hover::before { opacity:.07; }
-  .weapon-btn:hover {
-    border-color:var(--red); color:var(--red);
-    box-shadow:0 0 14px rgba(255,26,26,.25);
-    transform:translateY(-3px);
-  }
-  .weapon-btn:active { transform:translateY(0) scale(.96); }
-  .weapon-emoji {
-    font-size:clamp(1.2rem,3vw,1.8rem);
-    position:relative; z-index:1; transition:transform .18s;
-  }
-  .weapon-btn:hover .weapon-emoji { transform:scale(1.2); }
-  .weapon-name { position:relative; z-index:1; }
-
-  /* ── GAME OVER ── */
-  #game-over-overlay {
-    display:none; position:fixed; inset:0;
-    background:rgba(0,0,0,.9); z-index:180;
-    align-items:center; justify-content:center;
-    flex-direction:column; gap:1.2rem;
-    font-family:'Orbitron',sans-serif; text-align:center; padding:2rem;
-  }
-  #game-over-title {
-    font-size:clamp(2.2rem,7vw,4.5rem); font-weight:900; letter-spacing:.08em;
-  }
-  #game-over-sub  { font-size:clamp(.65rem,1.5vw,.9rem); color:#444; letter-spacing:.15em; }
-  #game-over-score { font-size:clamp(.9rem,2vw,1.2rem); margin-top:.4rem; }
-  #restart-btn {
-    margin-top:.8rem; padding:.65rem 1.8rem;
-    background:transparent; border:2px solid var(--red);
-    color:var(--red); font-family:'Orbitron',sans-serif;
-    font-size:.72rem; letter-spacing:.2em; cursor:pointer; transition:all .2s;
-  }
-  #restart-btn:hover { background:var(--red); color:#fff; box-shadow:0 0 20px var(--red); }
-  #change-char-btn {
-    padding:.45rem 1.4rem; background:transparent;
-    border:1px solid #2a2a2a; color:#444;
-    font-family:'Orbitron',sans-serif; font-size:.6rem;
-    letter-spacing:.2em; cursor:pointer; transition:all .2s;
-  }
-  /* ── VICTORY SCREEN ── */
-  #victory-screen {
-    display:none; position:fixed; inset:0; z-index:190;
-    background:#000;
-    flex-direction:column; align-items:center; justify-content:center;
-    gap:1.5rem; text-align:center; padding:2rem;
-  }
-  #victory-img {
-    max-width:min(85vw, 480px);
-    max-height:50vh;
-    object-fit:contain;
-    border-radius:12px;
-    animation: victoryPop .6s cubic-bezier(.34,1.56,.64,1) forwards;
-  }
-  @keyframes victoryPop {
-    from { transform:scale(0.4); opacity:0; }
-    to   { transform:scale(1);   opacity:1; }
-  }
-  #victory-title {
-    font-family:'Orbitron',sans-serif;
-    font-size:clamp(2rem,7vw,4rem);
-    font-weight:900; letter-spacing:.1em;
-    color:var(--cyan);
-    text-shadow:0 0 30px var(--cyan),0 0 60px var(--cyan);
-    animation: victoryGlow 1.5s ease-in-out infinite alternate;
-  }
-  @keyframes victoryGlow {
-    from { text-shadow:0 0 20px var(--cyan),0 0 40px var(--cyan); }
-    to   { text-shadow:0 0 40px var(--cyan),0 0 80px var(--cyan),0 0 120px var(--cyan); }
-  }
-  #victory-sub {
-    font-size:clamp(.65rem,1.5vw,.9rem);
-    color:#555; letter-spacing:.15em;
-    font-family:'Orbitron',sans-serif;
-  }
-  #victory-score { font-size:clamp(.9rem,2vw,1.2rem); font-family:'Orbitron',sans-serif; }
-  .victory-btn-row { display:flex; gap:1rem; flex-wrap:wrap; justify-content:center; }
-  #victory-restart-btn {
-    padding:.65rem 1.8rem;
-    background:transparent; border:2px solid var(--cyan);
-    color:var(--cyan); font-family:'Orbitron',sans-serif;
-    font-size:.72rem; letter-spacing:.2em; cursor:pointer; transition:all .2s;
-  }
-  #victory-restart-btn:hover { background:var(--cyan); color:#000; box-shadow:0 0 20px var(--cyan); }
-  #victory-char-btn {
-    padding:.45rem 1.4rem; background:transparent;
-    border:1px solid #2a2a2a; color:#444;
-    font-family:'Orbitron',sans-serif; font-size:.6rem;
-    letter-spacing:.2em; cursor:pointer; transition:all .2s;
-  }
-  #victory-char-btn:hover { border-color:var(--cyan); color:var(--cyan); }
-
-  /* ══════════════════════════════
-     MOBILE — layout vertical
-     CPU arriba, player abajo,
-     botones en el centro
-  ══════════════════════════════ */
-  @media (max-width: 600px) {
-
-    /* Victory screen — asegurar que se muestre bien */
-    #victory-screen {
-      padding: 1.2rem 1rem;
-      gap: 0.8rem;
-    }
-    #victory-img {
-      max-width: 88vw;
-      max-height: 35vh;
-    }
-    #victory-title {
-      font-size: clamp(2rem, 10vw, 3rem);
-    }
-
-    /* Score header — más compacto */
-    #scoreboard-bar {
-      padding: 0;
-      gap: .3rem;
-    }
-    .fighter-name {
-      font-size: 0.55rem;
-      letter-spacing: .08em;
-    }
-    .pip {
-      width: 11px; height: 11px;
-    }
-    #score-nums {
-      font-size: 1.3rem;
-    }
-
-    /* BATTLE AREA — vertical: CPU arriba, player abajo */
-    #battle-area {
-      flex-direction: column;
-      justify-content: space-around;
-      align-items: center;
-      gap: 0;
-      overflow: visible;
-    }
-
-    /* Ocultar labels laterales en mobile */
-    .fighter-label { display: none; }
-
-    /* Reordenar: CPU primero (arriba), center, player (abajo) */
-    .fighter-side:first-child  { order: 3; } /* player → abajo */
-    .battle-center             { order: 2; } /* center → medio */
-    .fighter-side:last-child   { order: 1; } /* cpu → arriba */
-
-    /* CPU más grande arriba */
-    .fighter-side:last-child {
-      flex: 0 0 auto;
-    }
-    #cpu-enemy {
-      width: clamp(100px, 38vw, 160px);
-    }
-
-    /* Player más grande abajo */
-    .fighter-side:first-child {
-      flex: 0 0 auto;
-    }
-    #player-char {
-      width: clamp(90px, 32vw, 140px);
-    }
-
-    /* Centro — horizontal y compacto */
-    .battle-center {
-      flex-direction: row;
-      gap: 1rem;
-      align-items: center;
-      flex: 0 0 auto;
-      width: 100%;
-      justify-content: center;
-    }
-    #vs-badge { font-size: 1rem; }
-    #choices-display {
-      gap: .5rem;
-      font-size: .55rem;
-    }
-    .choice-emoji { font-size: 1.4rem; }
-    #status-msg {
-      font-size: .6rem;
-      max-width: 180px;
-      letter-spacing: .05em;
-    }
-
-    /* Botones de arma — más grandes para touch */
-    #weapon-area { gap: .4rem; }
-    #choose-label { font-size: .55rem; letter-spacing: .2em; }
-    #buttons-row { gap: .6rem; }
-    .weapon-btn {
-      padding: .6rem .9rem;
-      border-radius: 12px;
-      min-width: 70px;
-    }
-    .weapon-emoji { font-size: 1.6rem; }
-    .weapon-name  { font-size: .5rem; letter-spacing: .1em; }
-
-    /* Animaciones — sin desplazamiento horizontal */
-    @keyframes playerHit {
-      0%  {transform:translateY(0) rotate(0)}
-      25% {transform:translateY(6px) rotate(2deg)}
-      60% {transform:translateY(-3px) rotate(-1deg)}
-      100%{transform:translateY(0) rotate(0)}
-    }
-    @keyframes cpuHit {
-      0%  {transform:translateY(0) rotate(0)}
-      20% {transform:translateY(-8px) rotate(-4deg)}
-      55% {transform:translateY(3px) rotate(2deg)}
-      100%{transform:translateY(0) rotate(0)}
-    }
-
-    /* Game over mobile */
-    #game-over-title { font-size: 2.5rem; }
-    #game-over-sub   { font-size: .65rem; }
-  }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Rock Paper Scissors — Last Hope</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
@@ -651,23 +16,12 @@
 <div id="yt-player"></div>
 <div id="yt-queen"></div>
 
-<!-- ══════════ VICTORY SCREEN ══════════ -->
-<div id="victory-screen">
-  <img id="victory-img" src="./resources/images/victoria.jpg" alt="Victoria">
-  <div id="victory-title">¡VICTORIA!</div>
-  <div id="victory-sub">Derrotaste al CPU. La humanidad tiene una oportunidad.</div>
-  <div id="victory-score"></div>
-  <div class="victory-btn-row">
-    <button id="victory-restart-btn" onclick="restartFromVictory()">↺ REVANCHA</button>
-    <button id="victory-char-btn" onclick="goToCharSelectFromVictory()">← CAMBIAR PERSONAJE</button>
-  </div>
-</div>
 <audio id="kiai-audio"      src="./resources/audio/kiai.mp3"      preload="auto"></audio>
 <audio id="damage-audio"    src="./resources/audio/damage.mp3"    preload="auto"></audio>
 <audio id="explosion-audio" src="./resources/audio/explosion.mp3" preload="auto"></audio>
 <audio id="perdiste-audio"  src="./resources/audio/perdiste.mp3"  preload="auto"></audio>
 
-<!-- ══════════ INTRO ══════════ -->
+<!-- INTRO -->
 <div id="intro-screen">
   <div id="intro-light"></div>
   <div id="intro-text">
@@ -681,44 +35,46 @@
   </div>
 </div>
 
-<!-- ══════════ CHARACTER SELECT ══════════ -->
+<!-- CHARACTER SELECT -->
 <div id="char-screen">
   <div id="char-title">SELECCIONÁ TU LUCHADOR</div>
-
   <div id="char-grid">
-
-    <!-- PERSONAJE 1 — disponible -->
     <div id="card-0" onclick="selectChar(0)">
       <img class="char-photo" src="./resources/images/player.png" alt="El Renegado"
-           onerror="this.outerHTML='<div class=\'char-photo-placeholder\'>🥊</div>'">
+           onerror="this.style.display='none';this.insertAdjacentHTML('afterend','<div class=\'char-photo-placeholder\'>🥊</div>')">
       <div class="char-name">EL RENEGADO</div>
     </div>
-
-    <!-- PERSONAJE 2 — bloqueado -->
     <div id="card-1">
       <div class="char-photo-placeholder">❓</div>
       <div class="char-name">???</div>
       <div class="soon-tag">PRÓXIMAMENTE</div>
       <div class="lock-badge">🔒</div>
     </div>
-
-    <!-- PERSONAJE 3 — bloqueado -->
     <div id="card-2">
       <div class="char-photo-placeholder">❓</div>
       <div class="char-name">???</div>
       <div class="soon-tag">PRÓXIMAMENTE</div>
       <div class="lock-badge">🔒</div>
     </div>
-
   </div>
-
   <button id="char-confirm-btn" onclick="confirmChar()">▶ ENTRAR A LA BATALLA</button>
 </div>
 
-<!-- ══════════ GAME SCREEN ══════════ -->
+<!-- VICTORY -->
+<div id="victory-screen">
+  <img id="victory-img" src="./resources/images/victoria.jpg" alt="Victoria">
+  <div id="victory-title">¡VICTORIA!</div>
+  <div id="victory-sub">Derrotaste al CPU. La humanidad tiene una oportunidad.</div>
+  <div id="victory-score"></div>
+  <div class="victory-btn-row">
+    <button id="victory-restart-btn" onclick="restartFromVictory()">↺ REVANCHA</button>
+    <button id="victory-char-btn" onclick="goToCharSelectFromVictory()">← CAMBIAR PERSONAJE</button>
+  </div>
+</div>
+
+<!-- GAME SCREEN -->
 <div id="game-screen">
 
-  <!-- SCOREBOARD -->
   <div id="scoreboard-bar">
     <div class="fighter-info">
       <div class="fighter-name" id="player-fighter-name">EL RENEGADO</div>
@@ -738,19 +94,15 @@
     </div>
   </div>
 
-  <!-- BATTLE -->
   <div id="battle-area">
 
-    <!-- PLAYER -->
     <div class="fighter-side">
       <div class="fighter-label">— TÚ —</div>
       <div id="player-char">
-        <img src="./resources/images/player.png" alt="player"
-             onerror="this.outerHTML='<div style=\'width:100%;height:160px;display:flex;align-items:center;justify-content:center;font-size:4rem;\'>🥊</div>'">
+        <img src="./resources/images/player.png" alt="player" onerror="this.style.display='none'">
       </div>
     </div>
 
-    <!-- CENTER -->
     <div class="battle-center">
       <div id="vs-badge">VS</div>
       <div id="choices-display">
@@ -767,7 +119,6 @@
       <div id="status-msg" style="color:#2a2a2a">Elige tu arma...</div>
     </div>
 
-    <!-- CPU -->
     <div class="fighter-side">
       <div class="fighter-label">— ENEMIGO —</div>
       <div id="cpu-enemy" class="cpu-idle">
@@ -785,69 +136,41 @@
               <stop offset="100%" stop-color="#080000"/>
             </radialGradient>
           </defs>
-
-          <!-- Legs -->
           <rect x="52" y="140" width="22" height="44" rx="9" fill="url(#cbody)" stroke="#111" stroke-width="1.5"/>
           <rect x="86" y="140" width="22" height="44" rx="9" fill="url(#cbody)" stroke="#111" stroke-width="1.5"/>
           <rect x="46" y="177" width="30" height="8" rx="3" fill="#040404"/>
           <rect x="84" y="177" width="30" height="8" rx="3" fill="#040404"/>
-
-          <!-- Body -->
           <rect x="40" y="84" width="80" height="60" rx="12" fill="url(#cbody)" stroke="#181818" stroke-width="1.5"/>
           <rect x="52" y="95" width="56" height="2.5" rx="1" fill="#0e0e0e" opacity=".9"/>
           <rect x="52" y="102" width="56" height="2.5" rx="1" fill="#0e0e0e" opacity=".6"/>
-          <!-- Chest panel -->
           <rect x="56" y="112" width="48" height="20" rx="6" fill="#050505" stroke="#ff1a1a" stroke-width="1.5" filter="url(#gr)"/>
           <text x="80" y="126" text-anchor="middle" font-family="'Share Tech Mono',monospace" font-size="9" font-weight="bold" fill="#ff2222" filter="url(#gr)">CPU</text>
-
-          <!-- LEFT ARM -->
           <g class="arm-l">
             <rect x="8"  y="84" width="32" height="48" rx="12" fill="url(#cbody)" stroke="#111" stroke-width="1.5"/>
             <rect x="4"  y="120" width="28" height="26" rx="10" fill="url(#cbody)" stroke="#111" stroke-width="1"/>
             <ellipse cx="18" cy="152" rx="15" ry="11" fill="#060606" stroke="#ff1a1a" stroke-width="1.5" filter="url(#gr)"/>
             <ellipse cx="30" cy="97"  rx="7"  ry="12" fill="#161616" opacity=".6"/>
           </g>
-          <!-- RIGHT ARM -->
           <g class="arm-r">
             <rect x="120" y="84" width="32" height="48" rx="12" fill="url(#cbody)" stroke="#111" stroke-width="1.5"/>
             <rect x="128" y="120" width="28" height="26" rx="10" fill="url(#cbody)" stroke="#111" stroke-width="1"/>
             <ellipse cx="142" cy="152" rx="15" ry="11" fill="#060606" stroke="#ff1a1a" stroke-width="1.5" filter="url(#gr)"/>
             <ellipse cx="130" cy="97"  rx="7"  ry="12" fill="#161616" opacity=".6"/>
           </g>
-
-          <!-- Neck -->
           <rect x="65" y="72" width="30" height="16" rx="4" fill="#090909" stroke="#111" stroke-width="1"/>
-
-          <!-- HEAD / MONITOR -->
           <g class="head-g">
-            <!-- Monitor housing -->
             <rect x="26" y="8" width="108" height="68" rx="10" fill="url(#cscreen)" stroke="#cc0000" stroke-width="2.5" filter="url(#gr)"/>
-            <!-- Screen bezel -->
             <rect x="32" y="14" width="96" height="56" rx="7" fill="#0e0000"/>
-
-            <!-- ─ ANGRY EYES ─ -->
-            <!-- Angry brow left — slants DOWN toward center = angry -->
             <line x1="35" y1="21" x2="62" y2="28" stroke="#ff1a1a" stroke-width="3" stroke-linecap="round" filter="url(#gs)"/>
-            <!-- Angry brow right — mirror -->
             <line x1="125" y1="21" x2="98" y2="28" stroke="#ff1a1a" stroke-width="3" stroke-linecap="round" filter="url(#gs)"/>
-
-            <!-- Left eye — narrow angry slit -->
             <g filter="url(#gs)">
-              <!-- Eye socket -->
               <ellipse cx="53" cy="36" rx="14" ry="8" fill="#1a0000"/>
-              <!-- Iris glow -->
               <ellipse cx="53" cy="36" rx="10" ry="5.5" fill="#cc0000" opacity=".5"/>
-              <!-- Pupil slit — horizontal angry slash -->
               <rect x="40" y="33" width="26" height="6" rx="2" fill="#ff1a1a" opacity=".9"/>
-              <!-- Top lid cut — thick angry overhang -->
               <polygon points="38,30 68,30 68,34 38,38" fill="#0e0000"/>
-              <!-- Inner glow -->
               <ellipse cx="53" cy="36" rx="6" ry="3" fill="#ff4444" filter="url(#gs)"/>
-              <!-- Frame -->
               <ellipse cx="53" cy="36" rx="14" ry="8" fill="none" stroke="#ff2222" stroke-width="1.5"/>
             </g>
-
-            <!-- Right eye — mirror -->
             <g filter="url(#gs)">
               <ellipse cx="107" cy="36" rx="14" ry="8" fill="#1a0000"/>
               <ellipse cx="107" cy="36" rx="10" ry="5.5" fill="#cc0000" opacity=".5"/>
@@ -856,11 +179,8 @@
               <ellipse cx="107" cy="36" rx="6" ry="3" fill="#ff4444" filter="url(#gs)"/>
               <ellipse cx="107" cy="36" rx="14" ry="8" fill="none" stroke="#ff2222" stroke-width="1.5"/>
             </g>
-
-            <!-- Mouth — jagged evil grin -->
             <g filter="url(#gr)">
               <path d="M36,52 Q80,70 124,52" fill="none" stroke="#ff1a1a" stroke-width="1.8"/>
-              <!-- Teeth row -->
               <rect x="43"  y="52" width="9"  height="9"  rx="1" fill="#ff2222"/>
               <rect x="55"  y="54" width="9"  height="11" rx="1" fill="#ff2222"/>
               <rect x="67"  y="56" width="10" height="12" rx="1" fill="#ff2222"/>
@@ -868,13 +188,9 @@
               <rect x="93"  y="55" width="9"  height="10" rx="1" fill="#ff2222"/>
               <rect x="105" y="52" width="9"  height="9"  rx="1" fill="#ff2222"/>
             </g>
-
-            <!-- Monitor base -->
             <rect x="26" y="72" width="108" height="7" rx="3" fill="#070000" stroke="#880000" stroke-width="1"/>
-            <!-- Corner screws -->
-            <circle cx="29" cy="11" r="2.5" fill="#0a0000"/>
+            <circle cx="29"  cy="11" r="2.5" fill="#0a0000"/>
             <circle cx="131" cy="11" r="2.5" fill="#0a0000"/>
-            <!-- Power LED -->
             <circle cx="123" cy="63" r="2.8" fill="#ff1a1a" filter="url(#gs)"/>
           </g>
         </svg>
@@ -883,7 +199,6 @@
 
   </div>
 
-  <!-- WEAPONS -->
   <div id="weapon-area">
     <div id="choose-label">— ELEGÍ TU ARMA —</div>
     <div id="buttons-row">
@@ -913,436 +228,6 @@
   <button id="change-char-btn" onclick="goToCharSelect()">← CAMBIAR PERSONAJE</button>
 </div>
 
-<script>
-/* ══════════════════════════════════════════════
-   YOUTUBE IFRAME API  —  música de fondo
-   Video: https://www.youtube.com/watch?v=HX_chhBXuGc
-   Se carga oculto, arranca cuando el jugador
-   confirma personaje, y el botón lo pausa/resume.
-══════════════════════════════════════════════ */
-const YT_VIDEO_ID   = 'HX_chhBXuGc';
-const YT_QUEEN_ID   = 'skVg5FlVKS0';
-let ytPlayer     = null;
-let ytQueen      = null;
-let ytReady      = false;
-let queenReady   = false;
-let musicOn      = false;
-let pendingPlay  = false;
-const musicBtn   = document.getElementById('music-btn');
-
-// Inyectar script de la YouTube IFrame API
-(function loadYTApi() {
-  const tag = document.createElement('script');
-  tag.src = 'https://www.youtube.com/iframe_api';
-  document.head.appendChild(tag);
-})();
-
-// Callback global requerido por la API de YT
-window.onYouTubeIframeAPIReady = function () {
-  ytPlayer = new YT.Player('yt-player', {
-    videoId: YT_VIDEO_ID,
-    playerVars: { autoplay:0, controls:0, loop:1, playlist:YT_VIDEO_ID, mute:0, rel:0, modestbranding:1 },
-    events: {
-      onReady: function (e) {
-        ytReady = true;
-        e.target.setVolume(70);
-        if (pendingPlay) {
-          e.target.playVideo();
-          musicOn = true;
-          syncMusicBtn();
-          pendingPlay = false;
-        }
-      },
-      onStateChange: function (e) {
-        if (musicOn && e.data === YT.PlayerState.ENDED) {
-          ytPlayer.seekTo(0); ytPlayer.playVideo();
-        }
-      }
-    }
-  });
-
-  ytQueen = new YT.Player('yt-queen', {
-    videoId: YT_QUEEN_ID,
-    playerVars: { autoplay:0, controls:0, loop:0, mute:0, rel:0, modestbranding:1 },
-    events: {
-      onReady: function (e) {
-        queenReady = true;
-        e.target.setVolume(90);
-      }
-    }
-  });
-};
-
-function startMusic() {
-  if (!ytReady) {
-    pendingPlay = true;
-    return;
-  }
-  ytPlayer.seekTo(0);
-  ytPlayer.playVideo();
-  musicOn = true;
-  syncMusicBtn();
-}
-
-function toggleMusic() {
-  if (!ytReady) return;
-  if (musicOn) {
-    ytPlayer.pauseVideo();
-    musicOn = false;
-  } else {
-    ytPlayer.playVideo();
-    musicOn = true;
-  }
-  syncMusicBtn();
-}
-
-function syncMusicBtn() {
-  musicBtn.textContent = musicOn ? '🔊' : '🔇';
-  musicBtn.classList.toggle('on', musicOn);
-}
-
-musicBtn.addEventListener('click', toggleMusic);
-
-/* ══════════════════════════════════════════════
-   SOUND FX  —  Web Audio API  (golpes)
-══════════════════════════════════════════════ */
-let audioCtx = null;
-
-function getAudioCtx() {
-  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  if (audioCtx.state === 'suspended') audioCtx.resume();
-  return audioCtx;
-}
-
-function sfxHit() {
-  const ctx  = getAudioCtx();
-  const osc  = ctx.createOscillator();
-  const gain = ctx.createGain();
-  const dist = ctx.createWaveShaper();
-  const curve = new Float32Array(256);
-  for (let i = 0; i < 256; i++) {
-    const x = (i * 2) / 256 - 1;
-    curve[i] = (Math.PI + 200) * x / (Math.PI + 200 * Math.abs(x));
-  }
-  dist.curve = curve;
-  osc.type = 'sawtooth';
-  osc.frequency.value = 80;
-  const now = ctx.currentTime;
-  gain.gain.setValueAtTime(0.7, now);
-  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
-  osc.connect(dist); dist.connect(gain); gain.connect(ctx.destination);
-  osc.start(now); osc.stop(now + 0.35);
-}
-
-function playKiai() {
-  const audio = document.getElementById('kiai-audio');
-  audio.volume = 1.0;
-  audio.currentTime = 0;
-  const p = audio.play();
-  if (p !== undefined) p.catch(() => {});
-}
-
-function playDamage() {
-  const audio = document.getElementById('damage-audio');
-  audio.volume = 1.0;
-  audio.currentTime = 0;
-  const p = audio.play();
-  if (p !== undefined) p.catch(() => {});
-}
-
-function playExplosion() {
-  const audio = document.getElementById('explosion-audio');
-  audio.volume = 1.0;
-  audio.currentTime = 0;
-  const p = audio.play();
-  if (p !== undefined) p.catch(() => {});
-}
-
-function playPerdiste() {
-  const audio = document.getElementById('perdiste-audio');
-  audio.volume = 1.0;
-  audio.currentTime = 0;
-  const p = audio.play();
-  if (p !== undefined) p.catch(() => {});
-}
-
-function sfxPlayerHit() {  const ctx  = getAudioCtx();
-  const buf  = ctx.createBuffer(1, ctx.sampleRate * 0.18, ctx.sampleRate);
-  const data = buf.getChannelData(0);
-  for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
-  const src  = ctx.createBufferSource();
-  const filt = ctx.createBiquadFilter();
-  const gain = ctx.createGain();
-  src.buffer = buf;
-  filt.type = 'lowpass'; filt.frequency.value = 500;
-  const now = ctx.currentTime;
-  gain.gain.setValueAtTime(0.45, now);
-  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
-  src.connect(filt); filt.connect(gain); gain.connect(ctx.destination);
-  src.start(now);
-}
-
-/* ══════════════════════════════════════════════
-   GAME LOGIC
-══════════════════════════════════════════════ */
-const MAX_SCORE = 5;
-const emojis = { rock:'✊', paper:'✋', scissors:'✌️' };
-const names  = { rock:'PIEDRA', paper:'PAPEL', scissors:'TIJERA' };
-let playerScore = 0, cpuScore = 0, busy = false;
-let selectedChar = null;
-
-// INTRO
-document.getElementById('intro-screen').addEventListener('click', () => {
-  const el = document.getElementById('intro-screen');
-  el.style.transition = 'opacity 1s';
-  el.style.opacity = '0';
-  setTimeout(() => {
-    el.style.display = 'none';
-    document.getElementById('char-screen').style.display = 'flex';
-  }, 1000);
-});
-
-// CHAR SELECT
-function selectChar(idx) {
-  selectedChar = idx;
-  [0,1,2].forEach(i => document.getElementById('card-'+i).classList.remove('selected'));
-  document.getElementById('card-' + idx).classList.add('selected');
-  document.getElementById('char-confirm-btn').style.display = 'inline-block';
-}
-
-function confirmChar() {
-  const cs = document.getElementById('char-screen');
-  cs.style.transition = 'opacity .6s';
-  cs.style.opacity = '0';
-  setTimeout(() => {
-    cs.style.display = 'none';
-    initGame();
-    document.getElementById('game-screen').style.display = 'flex';
-    startMusic();   // arranca la música de YouTube
-  }, 600);
-}
-
-// GAME INIT
-function initGame() {
-  playerScore = 0; cpuScore = 0; busy = false;
-  buildPips('player-pips', MAX_SCORE, false);
-  buildPips('cpu-pips', MAX_SCORE, true);
-  updateScoreNums();
-  document.getElementById('status-msg').textContent = 'Elige tu arma...';
-  document.getElementById('status-msg').style.color = '#2a2a2a';
-  document.getElementById('player-choice-box').classList.remove('visible');
-  document.getElementById('cpu-choice-box').classList.remove('visible');
-}
-
-function buildPips(id, count, isCpu) {
-  const el = document.getElementById(id);
-  el.innerHTML = '';
-  for (let i = 0; i < count; i++) {
-    const pip = document.createElement('div');
-    pip.className = 'pip';
-    pip.id = (isCpu ? 'cpu-pip-' : 'player-pip-') + i;
-    el.appendChild(pip);
-  }
-}
-
-function fillPip(isCpu, index) {
-  const pip = document.getElementById((isCpu ? 'cpu-pip-' : 'player-pip-') + index);
-  if (!pip) return;
-  pip.classList.add(isCpu ? 'cpu-filled' : 'player-filled', 'pip-new');
-  setTimeout(() => pip.classList.remove('pip-new'), 400);
-}
-
-function updateScoreNums() {
-  document.getElementById('score-player-num').textContent = playerScore;
-  document.getElementById('score-cpu-num').textContent    = cpuScore;
-}
-
-function popNum(id) {
-  const el = document.getElementById(id);
-  el.classList.remove('num-pop'); void el.offsetWidth;
-  el.classList.add('num-pop');
-  setTimeout(() => el.classList.remove('num-pop'), 350);
-}
-
-function getWinner(p, c) {
-  if (p === c) return 'tie';
-  if ((p==='rock'&&c==='scissors')||(p==='paper'&&c==='rock')||(p==='scissors'&&c==='paper')) return 'win';
-  return 'lose';
-}
-
-function play(playerChoice) {
-  if (busy) return;
-  busy = true;
-  // Desbloquear audios en el primer click de arma
-  ['kiai-audio','damage-audio','explosion-audio','perdiste-audio'].forEach(id => {
-    const a = document.getElementById(id);
-    if (a.paused) a.play().then(() => a.pause()).catch(() => {});
-  });
-  // Pre-cargar Queen player en mobile para desbloquear autoplay
-  if (queenReady) {
-    ytQueen.playVideo();
-    setTimeout(() => { if (!musicOn) ytQueen.pauseVideo(); }, 200);
-  }
-  showLaugh();
-  setTimeout(() => {
-    const choices = ['rock','paper','scissors'];
-    const cpuChoice = choices[Math.floor(Math.random()*3)];
-    const result = getWinner(playerChoice, cpuChoice);
-    hideLaugh();
-    revealChoices(playerChoice, cpuChoice);
-    setTimeout(() => { applyResult(result, playerChoice, cpuChoice); busy = false; }, 450);
-  }, 800);
-}
-
-function revealChoices(p, c) {
-  const pb = document.getElementById('player-choice-box');
-  const cb = document.getElementById('cpu-choice-box');
-  pb.classList.remove('visible'); cb.classList.remove('visible');
-  document.getElementById('player-emoji').textContent = emojis[p];
-  document.getElementById('cpu-emoji').textContent    = emojis[c];
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    pb.classList.add('visible'); cb.classList.add('visible');
-  }));
-}
-
-function applyResult(result, pChoice, cChoice) {
-  const statusEl = document.getElementById('status-msg');
-
-  if (result === 'win') {
-    fillPip(false, playerScore); playerScore++;
-    updateScoreNums(); popNum('score-player-num');
-    statusEl.style.color = '#00f5ff';
-    statusEl.textContent = `¡GOLPE DIRECTO! ${names[pChoice]} venció a ${names[cChoice]}`;
-    const cpu = document.getElementById('cpu-enemy');
-    cpu.classList.remove('cpu-idle');
-    cpu.classList.add('cpu-hit-anim');
-    setTimeout(() => { cpu.classList.remove('cpu-hit-anim'); cpu.classList.add('cpu-idle'); }, 700);
-    playKiai();
-    showResult('¡IMPACTO!', 'result-win');
-
-  } else if (result === 'lose') {
-    fillPip(true, cpuScore); cpuScore++;
-    updateScoreNums(); popNum('score-cpu-num');
-    statusEl.style.color = '#ff3333';
-    statusEl.textContent = `¡TE APLASTÓ! ${names[cChoice]} venció a ${names[pChoice]}`;
-    const flash = document.getElementById('hit-flash');
-    flash.classList.remove('flash-active'); void flash.offsetWidth;
-    flash.classList.add('flash-active');
-    const playerEl = document.getElementById('player-char');
-    playerEl.classList.add('player-hit-anim');
-    setTimeout(() => playerEl.classList.remove('player-hit-anim'), 550);
-    playDamage();
-    showResult('¡FALLASTE!', 'result-lose');
-
-  } else {
-    statusEl.style.color = '#444';
-    statusEl.textContent = `EMPATE — ${names[pChoice]} vs ${names[cChoice]}`;
-    showResult('EMPATE', 'result-tie');
-  }
-
-  if (playerScore >= MAX_SCORE || cpuScore >= MAX_SCORE) {
-    setTimeout(triggerGameOver, 1300);
-  } else {
-    setTimeout(() => {
-      if (playerScore < MAX_SCORE && cpuScore < MAX_SCORE) {
-        statusEl.textContent = 'Elige tu arma...';
-        statusEl.style.color = '#2a2a2a';
-      }
-    }, 2500);
-  }
-}
-
-function showResult(text, cls) {
-  const el = document.getElementById('round-result');
-  el.textContent = text; el.className = cls + ' result-show';
-  setTimeout(() => { el.className = ''; el.textContent = ''; }, 950);
-}
-
-function showLaugh() {
-  const b = document.getElementById('laugh-bubble');
-  const msgs = ['HA HA HA!', 'MUERE!', '∅ RESISTENCIA', 'PREDECIBLE', 'DATOS=PODER', 'PROCESANDO...'];
-  b.textContent = msgs[Math.floor(Math.random()*msgs.length)];
-  b.className = ''; void b.offsetWidth; b.className = 'laugh-show';
-}
-
-function hideLaugh() {
-  const b = document.getElementById('laugh-bubble');
-  b.style.transition = 'opacity .2s'; b.style.opacity = '0';
-  setTimeout(() => { b.style.transition = ''; b.style.opacity = ''; b.className = ''; }, 220);
-}
-
-function triggerGameOver() {
-  if (playerScore >= MAX_SCORE) {
-    triggerVictory();
-  } else {
-    triggerDefeat();
-  }
-}
-
-function triggerVictory() {
-  // Pausa música de batalla, arranca Queen
-  if (ytReady) ytPlayer.pauseVideo();
-  if (queenReady) ytQueen.playVideo();
-  musicOn = false; syncMusicBtn();
-
-  playExplosion();
-
-  const vs = document.getElementById('victory-screen');
-  document.getElementById('victory-score').innerHTML =
-    `<span style="color:var(--cyan)">${playerScore}</span> <span style="color:#222">—</span> <span style="color:var(--red)">${cpuScore}</span>`;
-  vs.style.display = 'flex';
-}
-
-function triggerDefeat() {
-  // Corta la música de batalla
-  if (ytReady) ytPlayer.pauseVideo();
-  musicOn = false; syncMusicBtn();
-
-  playPerdiste();
-
-  const overlay = document.getElementById('game-over-overlay');
-  const title   = document.getElementById('game-over-title');
-  const sub     = document.getElementById('game-over-sub');
-  const scoreEl = document.getElementById('game-over-score');
-  overlay.style.display = 'flex';
-  title.textContent = 'DERROTA';
-  title.style.color = '#ff1a1a';
-  title.style.textShadow = '0 0 30px #f00,0 0 60px #f00';
-  sub.textContent = 'El CPU te aplastó. Las máquinas siguen dominando...';
-  scoreEl.innerHTML = `<span style="color:var(--cyan)">${playerScore}</span> <span style="color:#222">—</span> <span style="color:var(--red)">${cpuScore}</span>`;
-}
-
-function restartFromVictory() {
-  document.getElementById('victory-screen').style.display = 'none';
-  if (queenReady) { ytQueen.stopVideo(); }
-  startMusic();
-  initGame();
-}
-
-function goToCharSelectFromVictory() {
-  document.getElementById('victory-screen').style.display = 'none';
-  if (queenReady) { ytQueen.stopVideo(); }
-  document.getElementById('game-screen').style.display = 'none';
-  const cs = document.getElementById('char-screen');
-  cs.style.opacity = '0'; cs.style.display = 'flex';
-  setTimeout(() => { cs.style.transition = 'opacity .5s'; cs.style.opacity = '1'; }, 50);
-}
-
-function restartGame() {
-  document.getElementById('game-over-overlay').style.display = 'none';
-  if (queenReady) ytQueen.stopVideo();
-  startMusic();
-  initGame();
-}
-
-function goToCharSelect() {
-  document.getElementById('game-over-overlay').style.display = 'none';
-  document.getElementById('game-screen').style.display = 'none';
-  if (queenReady) ytQueen.stopVideo();
-  const cs = document.getElementById('char-screen');
-  cs.style.opacity = '0'; cs.style.display = 'flex';
-  setTimeout(() => { cs.style.transition = 'opacity .5s'; cs.style.opacity = '1'; }, 50);
-}
-</script>
+<script src="main.js"></script>
 </body>
 </html>
