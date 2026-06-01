@@ -519,6 +519,127 @@
     letter-spacing:.2em; cursor:pointer; transition:all .2s;
   }
   #victory-char-btn:hover { border-color:var(--cyan); color:var(--cyan); }
+
+  /* ══════════════════════════════
+     MOBILE — layout vertical
+     CPU arriba, player abajo,
+     botones en el centro
+  ══════════════════════════════ */
+  @media (max-width: 600px) {
+
+    /* Victory screen — asegurar que se muestre bien */
+    #victory-screen {
+      padding: 1.2rem 1rem;
+      gap: 0.8rem;
+    }
+    #victory-img {
+      max-width: 88vw;
+      max-height: 35vh;
+    }
+    #victory-title {
+      font-size: clamp(2rem, 10vw, 3rem);
+    }
+
+    /* Score header — más compacto */
+    #scoreboard-bar {
+      padding: 0;
+      gap: .3rem;
+    }
+    .fighter-name {
+      font-size: 0.55rem;
+      letter-spacing: .08em;
+    }
+    .pip {
+      width: 11px; height: 11px;
+    }
+    #score-nums {
+      font-size: 1.3rem;
+    }
+
+    /* BATTLE AREA — vertical: CPU arriba, player abajo */
+    #battle-area {
+      flex-direction: column;
+      justify-content: space-around;
+      align-items: center;
+      gap: 0;
+      overflow: visible;
+    }
+
+    /* Ocultar labels laterales en mobile */
+    .fighter-label { display: none; }
+
+    /* Reordenar: CPU primero (arriba), center, player (abajo) */
+    .fighter-side:first-child  { order: 3; } /* player → abajo */
+    .battle-center             { order: 2; } /* center → medio */
+    .fighter-side:last-child   { order: 1; } /* cpu → arriba */
+
+    /* CPU más grande arriba */
+    .fighter-side:last-child {
+      flex: 0 0 auto;
+    }
+    #cpu-enemy {
+      width: clamp(100px, 38vw, 160px);
+    }
+
+    /* Player más grande abajo */
+    .fighter-side:first-child {
+      flex: 0 0 auto;
+    }
+    #player-char {
+      width: clamp(90px, 32vw, 140px);
+    }
+
+    /* Centro — horizontal y compacto */
+    .battle-center {
+      flex-direction: row;
+      gap: 1rem;
+      align-items: center;
+      flex: 0 0 auto;
+      width: 100%;
+      justify-content: center;
+    }
+    #vs-badge { font-size: 1rem; }
+    #choices-display {
+      gap: .5rem;
+      font-size: .55rem;
+    }
+    .choice-emoji { font-size: 1.4rem; }
+    #status-msg {
+      font-size: .6rem;
+      max-width: 180px;
+      letter-spacing: .05em;
+    }
+
+    /* Botones de arma — más grandes para touch */
+    #weapon-area { gap: .4rem; }
+    #choose-label { font-size: .55rem; letter-spacing: .2em; }
+    #buttons-row { gap: .6rem; }
+    .weapon-btn {
+      padding: .6rem .9rem;
+      border-radius: 12px;
+      min-width: 70px;
+    }
+    .weapon-emoji { font-size: 1.6rem; }
+    .weapon-name  { font-size: .5rem; letter-spacing: .1em; }
+
+    /* Animaciones — sin desplazamiento horizontal */
+    @keyframes playerHit {
+      0%  {transform:translateY(0) rotate(0)}
+      25% {transform:translateY(6px) rotate(2deg)}
+      60% {transform:translateY(-3px) rotate(-1deg)}
+      100%{transform:translateY(0) rotate(0)}
+    }
+    @keyframes cpuHit {
+      0%  {transform:translateY(0) rotate(0)}
+      20% {transform:translateY(-8px) rotate(-4deg)}
+      55% {transform:translateY(3px) rotate(2deg)}
+      100%{transform:translateY(0) rotate(0)}
+    }
+
+    /* Game over mobile */
+    #game-over-title { font-size: 2.5rem; }
+    #game-over-sub   { font-size: .65rem; }
+  }
 </style>
 </head>
 <body>
@@ -532,7 +653,7 @@
 
 <!-- ══════════ VICTORY SCREEN ══════════ -->
 <div id="victory-screen">
-  <img id="victory-img" src="./resources/images/victoria.png" alt="Victoria">
+  <img id="victory-img" src="./resources/images/victoria.jpg" alt="Victoria">
   <div id="victory-title">¡VICTORIA!</div>
   <div id="victory-sub">Derrotaste al CPU. La humanidad tiene una oportunidad.</div>
   <div id="victory-score"></div>
@@ -913,6 +1034,7 @@ function sfxHit() {
 
 function playKiai() {
   const audio = document.getElementById('kiai-audio');
+  audio.volume = 1.0;
   audio.currentTime = 0;
   const p = audio.play();
   if (p !== undefined) p.catch(() => {});
@@ -920,6 +1042,7 @@ function playKiai() {
 
 function playDamage() {
   const audio = document.getElementById('damage-audio');
+  audio.volume = 1.0;
   audio.currentTime = 0;
   const p = audio.play();
   if (p !== undefined) p.catch(() => {});
@@ -927,6 +1050,7 @@ function playDamage() {
 
 function playExplosion() {
   const audio = document.getElementById('explosion-audio');
+  audio.volume = 1.0;
   audio.currentTime = 0;
   const p = audio.play();
   if (p !== undefined) p.catch(() => {});
@@ -1044,6 +1168,11 @@ function play(playerChoice) {
     const a = document.getElementById(id);
     if (a.paused) a.play().then(() => a.pause()).catch(() => {});
   });
+  // Pre-cargar Queen player en mobile para desbloquear autoplay
+  if (queenReady) {
+    ytQueen.playVideo();
+    setTimeout(() => { if (!musicOn) ytQueen.pauseVideo(); }, 200);
+  }
   showLaugh();
   setTimeout(() => {
     const choices = ['rock','paper','scissors'];
